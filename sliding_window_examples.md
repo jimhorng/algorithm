@@ -285,9 +285,10 @@ class Solution:
             self.sz_win = 0
 
         def process_state():
-            flips_needed = min(n_half_lg - max(self.even_1s, self.odd_0s) + n_half_sm - min(self.even_1s, self.odd_0s),
-                               n_half_lg - max(self.even_0s, self.odd_1s) + n_half_sm - min(self.even_0s, self.odd_1s))
-            self.res = min(self.res, flips_needed)
+            if self.sz_win == n:
+                flips_needed = min(n_half_lg - max(self.even_1s, self.odd_0s) + n_half_sm - min(self.even_1s, self.odd_0s),
+                                n_half_lg - max(self.even_0s, self.odd_1s) + n_half_sm - min(self.even_0s, self.odd_1s))
+                self.res = min(self.res, flips_needed)
 
         def is_reach_end():
             return self.l_win > n-1
