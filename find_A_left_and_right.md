@@ -83,3 +83,102 @@ D=3, S=1, N=5, A=[2,1,3,1,5]
 ```
 
 8) sum-up, run operation till V=N+1 (6,7), and run additional D+2 (4) to verify if inf
+
+### code
+```python3
+def q(A, S, D):
+    LEFT, RIGHT = 0, 1
+    INF = -1
+    MAX, MIN = sys.maxsize, -sys.maxsize
+    n = len(A)
+    
+    val_idxes = {} # val:[idxes]
+    for i in range(n):
+        if A[i] < A[S]: continue
+        if A[i] not in val_idxes:
+            val_idxes[A[i]] = set()
+        val_idxes[A[i]].add(i)
+    cur_idx = S
+    dirn = LEFT
+    for val in range(A[S], n+D+2+1):
+        val_nx = val+1
+        idx_cands = val_idxes[val_nx]
+        next_cur_idx = None
+        if dirn == LEFT:
+            idx_left = MIN
+            for idx in idx_cands:
+                if idx < cur_idx:
+                    idx_left = max(idx_left, idx)
+            next_cur_idx = idx_left
+        elif dirn == RIGHT:
+            idx_right = MAX
+            for idx in idx_cands:
+                if idx > cur_idx:
+                    idx_right = min(idx_right, idx)
+            next_cur_idx = idx_right
+        if next_cur_idx in (MIN, MAX):
+            return cur_idx
+        # update +D to cur_idx, del org val
+        del val_idxes[val]
+        if val+D not in val_idxes:
+            val_idxes[val+D] = set()
+        val_idxes[val+D].add(cur_idx)
+        cur_idx = next_cur_idx
+        dirn = RIGHT if dirn == LEFT else LEFT
+        
+    return INF
+
+```
+* test case
+```python3
+testcases = [
+    {
+        "id": 1,
+        "input": {
+            "A": [2, 4, 3, 5, 1, 2],
+            "S": 4,
+            "D": 3,
+        },
+        "output": 2,
+    },
+    {
+        "id": 2,
+        "input": {
+            "A": [2,1],
+            "S": 1,
+            "D": 2,
+        },
+        "output": -1,
+    },
+    {
+        "id": 3,
+        "input": {
+            "A": [2,1,3],
+            "S": 1,
+            "D": 3,
+        },
+        "output": 1,
+    },
+    {
+        "id": 4,
+        "input": {
+            "A": [2,4,1,3],
+            "S": 2,
+            "D": 4,
+        },
+        "output": -1,
+    },
+    {
+        "id": 5,
+        "input": {
+            "A": [2,1,3,1,5],
+            "S": 1,
+            "D": 3,
+        },
+        "output": 2,
+    },
+]
+for tc in testcases:
+    output = q(**tc["input"])
+    print(f"""case {tc["id"]}: {tc["output"] == output}, output:{output}""")
+```
