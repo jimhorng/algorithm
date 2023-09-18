@@ -3,7 +3,7 @@
 m = unique colors
 n = grid size
 
-     3^m path <= 3^m*m steps                            n-m steps               =>  < 3^m*n
+     3^m path ~= each path has m steps                  n-m steps               total:  <= 3^m*(m+n-m) = 3^m*n
 /----------------------------------------\  /-----------------------------\
 (0,0):0 -d1- (0,1):1 -d1- (0,2):2 -dx- ... (r,c):0 -d1- (r,c):1 -d1- ... ():-1
                      -d2- (1,1):3
