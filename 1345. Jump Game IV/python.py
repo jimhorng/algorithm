@@ -20,5 +20,5 @@ class Solution:
                 if idx_nx not in visited and (0 <= idx_nx <= n-1): # 3
                     queue.append((idx_nx, step+1)) # [(1,1), (2,1), (3,1)]
                     visited.add(idx_nx) # {0,1,2,3}
-                    val_idx[arr[idx]].discard(idx_nx) # {1:{}}
+            val_idx[arr[idx]] = set()
         return None
