@@ -12,7 +12,7 @@ class Solution:
                 return not bools[0]
 
         def _f(start):
-            """ ret: result bool, next idx """
+            """ ret: result bool, last idx """
             cur = start
             operator = expression[cur]
             cur += 2 # skip operator, (
