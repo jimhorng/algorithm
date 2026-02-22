@@ -1,10 +1,10 @@
-# <Problem>
-Q:
+## Problem
 Given a list of start times for a task. Each task has the same length, find the min number of cpus needed to minimize the end time of the final task. 
 
 Each task can start on or after the start time. 
 
-Example: 
+### Example:
+case 1:
 start times = [0,0,0,10000] with
 task length t = 5. 
 The answer would just be 1
