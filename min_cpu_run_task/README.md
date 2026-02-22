@@ -1,27 +1,27 @@
-## Problem
+## < Problem >
 Given a list of start times for a task. Each task has the same length, find the min number of cpus needed to minimize the end time of the final task. 
 
 Each task can start on or after the start time. 
 
-case 1:
+Example 1: 
 ```
 start times = [0,0,0,10000] with
 task length t = 5. 
 The answer would just be 1
 ```
----
-case 2:
+
+Example 2:
 ```
 start times = [0,0,0]
 t = 5. 
 out: 3
 ```
----
 
 ## Solution
 
 ### Algorithm (sol1)
 Uses binary search with greedy scheduling simulation:
+- code: [sol1.py](sol1.py)
 
 1. **Sort start times** in increasing order
 2. **Calculate minimum possible end time**: `last_start_time + task_length`
@@ -41,6 +41,7 @@ Uses binary search with greedy scheduling simulation:
 ---
 
 ## Test Cases
+- code: [test_cases.py](test_cases.py)
 
 8 test cases covering:
 - Edge cases (single task, empty input)
