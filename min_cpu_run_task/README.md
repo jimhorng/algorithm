@@ -3,17 +3,19 @@ Given a list of start times for a task. Each task has the same length, find the 
 
 Each task can start on or after the start time. 
 
-### Example:
 case 1:
+```
 start times = [0,0,0,10000] with
 task length t = 5. 
 The answer would just be 1
+```
 ---
 case 2:
+```
 start times = [0,0,0]
 t = 5. 
 out: 3
-
+```
 ---
 
 ## Solution
