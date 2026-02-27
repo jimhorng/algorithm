@@ -16,9 +16,7 @@ Example 2:
 
 ### Solutions
 
-### Solutions
-
-**prob1_sol1 — Forward with Binary Search** · [prob1_sol1.py](prob1_sol1.py)
+#### prob1_sol1 — Forward with Binary Search · [prob1_sol1.py](prob1_sol1.py)
 
 1. Sort start times in increasing order.
 2. `min_possible_end = last_start_time + task_length`
@@ -29,7 +27,7 @@ Example 2:
 - Space: O(n)
 - Key insight: deque stays naturally sorted, giving O(1) operations.
 
-**prob1_sol2 — Backward with Max Heap** · [prob1_sol2.py](prob1_sol2.py)
+#### prob1_sol2 — Backward with Max Heap · [prob1_sol2.py](prob1_sol2.py)
 
 1. Sort start times; process tasks last → first.
 2. Max heap tracks the latest "free time boundary" per CPU.
@@ -39,7 +37,7 @@ Example 2:
 - Space: O(k)
 - Key insight: backward processing eliminates binary search — working from the fixed endpoint allows direct minimization.
 
-**prob1_sol3 — Forward min-heap, no binary search** · [prob1_sol3.py](prob1_sol3.py)
+#### prob1_sol3 — Forward min-heap, no binary search · [prob1_sol3.py](prob1_sol3.py)
 
 1. Sort tasks by start_time.
 2. Min-heap of CPU free times; for each task `s`: compute `actual_start = max(cpu_free, s)`, `end = actual_start + L`.
@@ -80,21 +78,21 @@ Example:
 
 `min_possible_end = max(start_times[i] + task_lengths[i])` — the lower bound if every task starts at its earliest.
 
-**prob2_sol1 — Binary Search + Min-Heap** · [prob2_sol1.py](prob2_sol1.py)
+#### prob2_sol1 — Binary Search + Min-Heap · [prob2_sol1.py](prob2_sol1.py)
 
 Sort by `(start_time, -task_length)`. Binary search on k; simulate by assigning each task to the earliest-available CPU via min-heap. If any `actual_start + length > min_possible_end`, k fails.
 
 - Time: O(n log n) · Space: O(n)
 - ⚠ Incorrect on some inputs — see [Failure 2: sort order heuristic](#failure-2--sort-order-heuristic-is-not-globally-optimal)
 
-**prob2_sol2 — Direct Greedy, No Binary Search** · [prob2_sol2.py](prob2_sol2.py)
+#### prob2_sol2 — Direct Greedy, No Binary Search · [prob2_sol2.py](prob2_sol2.py)
 
 Same sort. Single pass: peek at the earliest-available CPU — reuse if it fits, otherwise allocate a new CPU (task runs from its nominal start).
 
 - Time: O(n log n) · Space: O(k)
 - ⚠ Incorrect on some inputs — see [Failure 1: greedy reuse](#failure-1--greedy-reuse-is-not-globally-optimal) and [Failure 2: sort order heuristic](#failure-2--sort-order-heuristic-is-not-globally-optimal)
 
-**prob2_sol3 — Backtracking + Binary Search (Correct)** · [prob2_sol3.py](prob2_sol3.py)
+#### prob2_sol3 — Backtracking + Binary Search (Correct) · [prob2_sol3.py](prob2_sol3.py)
 
 Binary search on k. For each candidate k, backtracking tries all ways to partition tasks into k groups. Each group is validated by Earliest-Release-First (ERF) simulation. ERF is provably optimal for single-machine scheduling with a common deadline (exchange-argument proof), so rejecting an ERF-infeasible group is sound. Symmetry breaking skips duplicate CPU states to prune the search tree.
 
@@ -102,7 +100,7 @@ Binary search on k. For each candidate k, backtracking tries all ways to partiti
 - Correct: passes all 9 test cases including the two known failure cases for sol1/sol2
 - Trade-off: correct for arbitrary inputs at the cost of potentially exponential time; use sol1 for large inputs where approximate answers are acceptable
 
-**prob2_sol4 — Backward Exhaustive DFS + Right-Justify** · [prob2_sol4.py](prob2_sol4.py)
+#### prob2_sol4 — Backward Exhaustive DFS + Right-Justify · [prob2_sol4.py](prob2_sol4.py)
 
 Sort tasks by start_time DESC. Each CPU tracks its current "front time" — the start of its leftmost placed task. For each task `(s, l)` exhaust all placements:
 - **Option A** – prepend to any CPU with `front ≥ s + l`: set `new_front = front - l` (right-justified, pushes task as late as possible to maximise the gap for earlier tasks)
@@ -179,7 +177,7 @@ Impossible:
 
 ### Solutions
 
-**prob3_sol1 — Forward start_time + Min-Heap** · [prob3_sol1.py](prob3_sol1.py)
+#### prob3_sol1 — Forward start_time + Min-Heap · [prob3_sol1.py](prob3_sol1.py)
 
 Adaptation of prob1_sol1. Sort by `(start_time, deadline)` — same chronological order as prob1. The one meaningful change from prob1: replace the shared global deadline check with a per-task `actual_start + L <= deadline[i]` check. No binary search needed — if the earliest-free CPU fails the deadline, all others (freed later) are worse, so opening a new CPU is the only option.
 
@@ -188,7 +186,7 @@ Sorting by start_time (not deadline/EDF) is essential: a looser-deadline task ma
 - Time: O(n log n) · Space: O(n)
 - ⚠ Incorrect on some inputs — see [Failure: greedy reuse blocks tight-deadline tasks](#failure--greedy-reuse-blocks-tight-deadline-tasks)
 
-**prob3_sol2 — Backward, start_time DESC + Max-Heap** · [prob3_sol2.py](prob3_sol2.py)
+#### prob3_sol2 — Backward, start_time DESC + Max-Heap · [prob3_sol2.py](prob3_sol2.py)
 
 Adaptation of prob1_sol2. Sort by `(-start_time, -deadline)` — reverse chronological order, same as prob1. The key change: effective right boundary = `min(deadline, cpu_front)` — a task cannot exceed its own deadline even if the CPU chain starts later. Condition: `effective >= start + L`, new front = `effective - L`.
 
@@ -197,7 +195,7 @@ Sorting by start_time DESC (not deadline DESC) is essential for the same reason 
 - Time: O(n log n) · Space: O(n)
 - ⚠ Incorrect on some inputs — see [Failure: max-front wastes high-front chains](#failure--max-front-greedy-wastes-high-front-chains)
 
-**prob3_sol3 — Forward + Binary Search** · [prob3_sol3.py](prob3_sol3.py)
+#### prob3_sol3 — Forward + Binary Search · [prob3_sol3.py](prob3_sol3.py)
 
 prob1-style formulation for per-task deadlines.
 
