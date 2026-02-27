@@ -7,7 +7,7 @@ Backward processing with max heap approach
 
 import heapq
 
-def sol2(start_times, task_length):
+def prob1(start_times, task_length):
     if not start_times:
         return 0
     

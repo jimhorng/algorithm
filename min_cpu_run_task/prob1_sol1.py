@@ -49,7 +49,7 @@ def _binary_search_min_cpus(sorted_start_times, task_length, min_possible_end):
     
     return result
 
-def sol1(start_times, task_length):
+def prob1(start_times, task_length):
     if not start_times:
         return 0
     
