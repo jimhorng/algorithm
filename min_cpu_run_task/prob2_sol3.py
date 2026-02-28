@@ -37,13 +37,6 @@ Complexity
 Worst case: O(log n · k^n · n log n)   — exponential in n for fixed k.
 In practice, aggressive pruning keeps this fast for n ≤ ~15.
 
-Why is this hard? (Optional context)
---------------------------------------
-The general Pm|r_j|C_max problem (parallel machines, release times, minimise
-makespan) is NP-hard; our feasibility formulation is equivalent, so no known
-polynomial algorithm exists for arbitrary inputs. sol1 and sol2 are fast
-heuristics that fail on specific edge cases. sol3 is correct at the cost of
-potentially exponential time.
 """
 
 import heapq

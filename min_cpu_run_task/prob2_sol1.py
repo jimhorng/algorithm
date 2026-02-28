@@ -15,17 +15,6 @@ Sort order: (start_time, -task_length) -- longer tasks first within the
 same start time. This ensures longer (harder to delay) tasks are scheduled
 first while CPUs are all available, leaving slack for shorter tasks.
 
-Known limitation:
-  The (start, -length) sort is a heuristic. It fails when the optimal
-  schedule requires a SHORT task to be chained BEFORE a longer one sharing
-  the same start time, in order to free a CPU early enough for a later task.
-
-  Counter-example:
-    start_times=[2,2,4,5,9], task_lengths=[1,6,8,2,6]  -> expected 2, returns 3
-    Optimal:  CPU1: (4,8)[4-12] + (5,2)[12-14]
-              CPU2: (2,1)[2-3]  + (2,6)[3-9] + (9,6)[9-15]
-    Sol1 forces (2,6) before (2,1) and never finds this schedule.
-
 Time Complexity: O(n log n)
   - Sorting:       O(n log n)  -- once
   - Binary search: O(log n) iterations x O(n log k) simulation = O(n log n)

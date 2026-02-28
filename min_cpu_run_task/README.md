@@ -1,3 +1,37 @@
+## Table of Contents
+
+- [Problem 1 — Fixed Duration, Minimize End Time](#problem-1--fixed-duration-minimize-end-time)
+  - [prob1\_sol1 — Forward with Binary Search](#prob1_sol1--forward-with-binary-search--prob1_sol1py)
+  - [prob1\_sol2 — Backward with Max Heap](#prob1_sol2--backward-with-max-heap--prob1_sol2py)
+  - [prob1\_sol3 — Forward min-heap, no binary search](#prob1_sol3--forward-min-heap-no-binary-search--prob1_sol3py)
+  - [⚠ Known Failure (sol3 only)](#-known-failure-sol3-only)
+  - [Test Cases](#test-cases--prob1_test_casespy)
+- [Problem 2 — Variable Duration, Minimize End Time](#problem-2--variable-duration-minimize-end-time)
+  - [prob2\_sol1 — Binary Search + Min-Heap](#prob2_sol1--binary-search--min-heap--prob2_sol1py)
+  - [prob2\_sol2 — Direct Greedy, No Binary Search](#prob2_sol2--direct-greedy-no-binary-search--prob2_sol2py)
+  - [prob2\_sol3 — Backtracking + Binary Search (Correct)](#prob2_sol3--backtracking--binary-search-correct--prob2_sol3py)
+  - [prob2\_sol4 — Backward Exhaustive DFS + Right-Justify](#prob2_sol4--backward-exhaustive-dfs--right-justify--prob2_sol4py)
+  - [⚠ Known Failures (sol1 / sol2)](#-known-failures-sol1--sol2-only--sol3-is-correct)
+    - [Failure 1 — Greedy reuse is not globally optimal](#failure-1--greedy-reuse-is-not-globally-optimal)
+    - [Failure 2 — Sort order heuristic is not globally optimal](#failure-2--sort-order-heuristic-is-not-globally-optimal)
+  - [Test Cases](#test-cases--prob2_test_casespy)
+- [Problem 3 — Fixed Duration, Per-Task Deadline](#problem-3--fixed-duration-per-task-deadline)
+  - [prob3\_sol1 — Forward start\_time + Min-Heap](#prob3_sol1--forward-start_time--min-heap--prob3_sol1py)
+  - [prob3\_sol2 — Backward, start\_time DESC + Max-Heap](#prob3_sol2--backward-start_time-desc--max-heap--prob3_sol2py)
+  - [prob3\_sol3 — Forward + Binary Search](#prob3_sol3--forward--binary-search--prob3_sol3py)
+  - [⚠ Known Failures](#-known-failures)
+    - [Failure — Forward sol1: greedy reuse blocks tight-deadline tasks](#failure--forward-sol1-greedy-reuse-blocks-tight-deadline-tasks)
+    - [Failure — max-front greedy wastes high-front chains](#failure--max-front-greedy-wastes-high-front-chains)
+  - [Test Cases](#test-cases--prob3_test_casespy)
+- [Problem 4 — Variable Duration, Per-Task Deadline](#problem-4--variable-duration-per-task-deadline)
+  - [Solution Approach (TODO)](#solution-approach-todo)
+  - [Test Cases](#test-cases--prob4_test_casespy)
+- [How to Run](#how-to-run)
+  - [Project Structure](#project-structure)
+- [Implementation Status](#implementation-status)
+
+---
+
 ## Problem 1 — Fixed Duration, Minimize End Time
 
 Given a list of start times for tasks. **Each task has the same length**, find the min number of CPUs needed to **minimize the end time of the final task**.
@@ -227,13 +261,30 @@ Sol1 reuses the same CPU for the second flexible task (d=20), advancing its free
 
 > Affects: **prob3_sol2** only
 
-Minimal counter-example: `start_times=[3,3,3,10]`, `task_length=5`, `deadlines=[12,13,10,17]` → expected **2**, sol2 returns **3**
+Counter-example: `start_times=[3,5,4,10]`, `task_length=5`, `deadlines=[12,14,9,17]` → expected **2**, sol2 returns **3**
 
-Sol2 processes tasks backward: T3(10,17) → T1(3,13) → T0(3,12) → T2(3,10). T1 is attached to the T3 chain (max_front=12, effective=12≥8✓), dropping front to 7. T0 and T2 then need effective≧8 but see only front=7 → two new CPUs opened.
+```
+     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17
+t0            s                          d                    (tl=5)
+t2               s              d                             (tl=5)
+t1                  s                          d              (tl=5)
+t3                                   s                    d   (tl=5)
 
-**Optimal (2 CPUs):** `CPU1: T2[3,8]→T3[10,15]`, `CPU2: T0[3,8]→T1[8,13]`. T0 and T1 share the same start time and can chain sequentially (T1 starts at max(8,3)=8, ends 13≤13✓). Sol2 missed this by greedily consuming the high-front slot for T1 instead.
+Optimal (2 CPUs):
+     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17
+c1               [=t2==========]   [=t3==========]
+c2            [=t0==========][=t1==========]
 
-**Root cause:** always reusing the most-attractive slot (highest front) destroys its utility for tasks that needed it, identical in structure to sol1’s and prob2’s greedy reuse flaw.
+Sol2 backward (3 CPUs):
+     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17
+c1                  [=t1==========][=t3==========]
+c2               [=t2==========]
+c3            [=t0==========]
+```
+
+Sol2 processes tasks backward by start DESC: T3(10,17) → T1(5,14) → T2(4,9) → T0(3,12). T1 is attached to the T3 chain (max_front=12, effective=min(14,12)=12≥10✓), dropping front to 7. T2 needs effective=min(9,7)=7≥9? No → new CPU. T0 needs effective=min(12,7)=7≥8? No → new CPU.
+
+**Root cause:** T1 consumed the high-front T3 chain, leaving front=7 too low for both T2 (pinned, must end by 9) and T0. The most-constrained task (T2, tightest deadline) should have been given first claim on that chain.
 
 ### Test Cases · [prob3_test_cases.py](prob3_test_cases.py)
 12 cases: 8 core cases, 2 EDF-failure cases (`edf_fails_*`), 1 sol1 failure (`sol1_greedy_reuse_*`), 1 sol2 failure (`sol2_max_front_*`).

@@ -109,17 +109,17 @@ prob3_test_cases = [
     },
     # ── Known failure for sol2 only (max-front greedy wastes high-front chains) ──
     {
-        "testcase": "sol2_max_front_wastes_chain_for_same_start_tasks",
-        # T1(3,13) has the highest deadline among same-start tasks.
-        # Sol2 attaches T1 to the T3(10,17) chain (max_front=12), dropping
-        # that chain's front to 7. T0 and T2 (also start=3) then need
-        # effective=min(12|10, 7)=7 >= 3+5=8, which fails -> 2 new CPUs.
-        # Optimal: CPU1: T2[3,8]->T3[10,15]; CPU2: T0[3,8]->T1[8,13].
-        # T0 and T1 have the same start so they can be chained sequentially,
-        # freeing the high-front chain for T2+T3 instead.
-        "start_times": [3, 3, 3, 10],
+        "testcase": "sol2_max_front_wastes_chain_for_tight_deadline_task",
+        # start_times=[3,5,4,10], task_length=5, deadlines=[12,14,9,17]
+        # Sol2 backward order (start DESC): T3(10,17)->T1(5,14)->T2(4,9)->T0(3,12)
+        # T1 attaches to T3 chain (max_front=12, effective=12>=10 ✓), front->7.
+        # T2: effective=min(9,7)=7 < 9 -> new CPU.
+        # T0: effective=min(12,7)=7 < 8 -> new CPU. Returns 3.
+        # Optimal (2 CPUs): c1: T2[4,9]->T3[10,15]; c2: T0[3,8]->T1[5,10] ... wait
+        # c1: T2[4,9] T3[10,15]; c2: T0[3,8] T1[8,13] (T1 starts at max(8,5)=8 ✓)
+        "start_times": [3, 5, 4, 10],
         "task_length": 5,
-        "deadlines": [12, 13, 10, 17],
+        "deadlines": [12, 14, 9, 17],
         "expected": 2
     }
 ]
