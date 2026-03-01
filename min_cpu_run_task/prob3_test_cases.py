@@ -121,5 +121,42 @@ prob3_test_cases = [
         "task_length": 5,
         "deadlines": [12, 14, 9, 17],
         "expected": 2
+    },
+    # ── Known failure for ALL sols (strategic idling required) ──────────────
+    {
+        "testcase": "strategic_idling_all_sols_fail",
+        # T0(s=1,d=6), T1(s=4,d=14), T2(s=6,d=9), L=3
+        # EDF order on 1 CPU: T0[1,4] -> idle [4,6] -> T2[6,9] -> T1[9,12]<=14 ✓
+        # All sols schedule T1 at t=4 (it's available) instead of idling for T2,
+        # forcing T2 onto a new CPU. Optimal=1 but all sols return 2.
+        "start_times": [1, 4, 6],
+        "task_length": 3,
+        "deadlines": [6, 14, 9],
+        "expected": 1
+    },
+    # ── Known failure for sol2 + sol3 (different-release EDF ordering) ──────
+    {
+        "testcase": "different_release_edf_sol2_sol3_fail",
+        # T0(s=5,d=18), T1(s=6,d=18), T2(s=7,d=14), T3(s=8,d=20), T4(s=9,d=21), L=5
+        # T2 has tightest latest_start=9. With k=2, must schedule T2 before T0/T1
+        # even though T0 and T1 are released earlier.
+        # sol3 pre-sorts by (release, ls): (5,13),(6,13),(7,9),(8,15),(9,16)
+        #   k=2: CPU1 takes T0[5,10], CPU2 takes T1[6,11], then T2 sees both CPUs
+        #   free at 10/11 > ls=9 -> declared infeasible -> returns 3. Wrong.
+        # sol1 (forward greedy) happens to get 2 by not reusing early for T2.
+        # Correct: CPU1: T0[5,10]->T3[10,15]; CPU2: T2[7,12]->T1[12,17]<=18 ✓;
+        #   T4[17,22]<=21? No. Try: CPU1: T2[7,12]->T4[12,17]; CPU2: T0[5,10]->T3[10,15];
+        #   T1[15,20]<=18? No. CPU1: T0[5,10]->T2[10,15]<=14? No (10>ls=9).
+        #   CPU1: T1[6,11]; CPU2: T2[7,12]->... wait T2 ls=9, must start by 9.
+        #   CPU1: T2[7,12]? 12>14? No 12<=14 ✓. T0[5,10]->T3[10,15]; T1[6,11]->T4[11,16]
+        #   Check: CPU1: T0[5,10] T3[10,15]; CPU2: T1[6,11] T4[11,16]<=21 ✓ T2?
+        #   Need 3rd CPU for T2 unless... CPU2: T2[7,12] T? -- only 2 tasks per CPU.
+        #   Optimal 2-CPU: CPU1: T0[5,10]->T3[10,15]; CPU2: T2[7,12]->T1[12,17]<=18 ✓
+        #     T4: max(15,9)=15, 15+5=20<=21 ✓ on CPU1 after T3. CPU1: T0 T3 T4.
+        #     CPU1: T0[5,10]->T3[10,15]->T4[15,20]<=21 ✓  CPU2: T2[7,12]->T1[12,17]<=18 ✓
+        "start_times": [5, 6, 7, 8, 9],
+        "task_length": 5,
+        "deadlines": [18, 18, 14, 20, 21],
+        "expected": 2
     }
 ]

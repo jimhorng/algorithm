@@ -19,7 +19,9 @@
   - [prob3\_sol1 — Forward start\_time + Min-Heap](#prob3_sol1--forward-start_time--min-heap--prob3_sol1py)
   - [prob3\_sol2 — Backward, start\_time DESC + Max-Heap](#prob3_sol2--backward-start_time-desc--max-heap--prob3_sol2py)
   - [prob3\_sol3 — Forward + Binary Search](#prob3_sol3--forward--binary-search--prob3_sol3py)
-  - [⚠ Known Failures](#-known-failures)
+  - [prob3\_sol4 — Hall's Condition + Binary Search (Correct)](#prob3_sol4--halls-condition--binary-search-correct--prob3_sol4py)
+  - [⚠ Known Failures (sol1 / sol2 / sol3 — sol4 is correct)](#-known-failures-sol1--sol2--sol3--sol4-is-correct)
+    - [Failure — Strategic idling / different-release EDF](#failure--strategic-idling--different-release-edf)
     - [Failure — Forward sol1: greedy reuse blocks tight-deadline tasks](#failure--forward-sol1-greedy-reuse-blocks-tight-deadline-tasks)
     - [Failure — max-front greedy wastes high-front chains](#failure--max-front-greedy-wastes-high-front-chains)
   - [Test Cases](#test-cases--prob3_test_casespy)
@@ -235,19 +237,49 @@ prob1-style formulation for per-task deadlines.
 
 1. Pre-check impossible tasks: if `start_times[i] + task_length > deadlines[i]` for any i, return `-1`.
 2. Transform each task to `(release, latest_start)` where `latest_start = deadline - task_length`.
+3. Sort tasks by `(release, latest_start)` — statically encodes EDF priority within each release group, eliminating a dynamic heap.
+4. Binary search on `k` (1..n CPUs).
+5. Feasibility simulation for fixed `k`:
+   - Deque `machines`: next-free time per CPU (sorted by fixed-`L` invariant — no heap needed).
+   - Iterate tasks in sorted order; popleft earliest-free CPU, fast-forward if idle, check `t ≤ latest_start`.
+
+Deque invariant: all tasks have the same length L, so each push lands at `t + L ≥` all existing values → append-to-back preserves sort order, popleft gives minimum in O(1).
+
+- Time: O(n log n) · Space: O(n)
+- ⚠ Incorrect on some inputs — see [Failure: strategic idling / different-release EDF](#failure--strategic-idling--different-release-edf)
+
+#### prob3_sol4 — Hall's Condition + Binary Search (Correct) · [prob3_sol4.py](prob3_sol4.py)
+
+For k identical machines and n jobs of equal length L, **Hall's condition** is both necessary and sufficient for feasibility:
+
+> For every interval `[a, b)` formed by critical points `{r_i} ∪ {d_i}`, the number of tasks contained within it (release ≥ a AND deadline ≤ b) must not exceed `k × ⌊(b−a)/L⌋`.
+
+Greedy algorithms (EDF, EDD, sort-by-release) fail when the optimal schedule requires a CPU to idle and wait for a tight-deadline task arriving later. Hall's condition avoids constructing a schedule entirely — it only checks whether a valid packing *can* exist.
+
+Steps:
+1. Pre-check impossible tasks: if `start_times[i] + task_length > deadlines[i]` for any i, return `-1`.
+2. Transform each task to `(release, latest_start)` where `latest_start = deadline - task_length`.
 3. Binary search on `k` (1..n CPUs).
-4. Feasibility simulation for fixed `k`:
-   - Min-heap `machines`: next-free time per CPU.
-   - Min-heap `available`: released tasks ordered by `latest_start`.
-   - Repeatedly take earliest-free CPU time `t`, fast-forward if no task is released,
-     then run the available task with smallest `latest_start`.
-   - If `t > latest_start` for the chosen task, `k` is infeasible.
+4. For fixed `k`, check Hall's condition over all O(n²) critical-point pairs in O(n) each.
 
-- Time: O(n log n log n) · Space: O(n)
-- Notes: this variant matches prob1's "binary search + forward simulate" pattern
-  and passes current 12/12 `prob3_test_cases.py`.
+- Time: O(n³ log n) · Space: O(n)
+- **Correct on all 14 test cases**, including the strategic-idling case that breaks all greedy approaches.
 
-### ⚠ Known Failures
+### ⚠ Known Failures (sol1 / sol2 / sol3 — sol4 is correct)
+
+#### Failure — Strategic idling / different-release EDF
+
+> Affects: **prob3_sol3** (and by prior analysis, **sol1** / **sol2** for the strategic-idling variant)
+
+All greedy simulations (sort-by-release, EDF, backward) fail when the optimal schedule requires a CPU to **idle** past an available task so a tighter-deadline task arriving later can claim that slot.
+
+Counter-example: `start_times=[1,4,6]`, `task_length=3`, `deadlines=[6,14,9]` → expected **1**, sol3 returns **2**
+
+Optimal 1-CPU schedule: T0[1,4] → **idle [4,6]** → T2[6,9] → T1[9,12]≤14 ✓
+
+sol3 processes T1 at t=4 (it's released) instead of idling for T2, pushing CPU free to 7 > ls(T2)=6 → new CPU.
+
+Second variant (`different_release_edf`): pre-sorting by `(release, ls)` cannot enforce EDF across tasks with different release times — a tighter-deadline task released slightly later gets starved after earlier-released tasks fill all CPUs.
 
 #### Failure — Forward sol1: greedy reuse blocks tight-deadline tasks
 
@@ -287,7 +319,9 @@ Sol2 processes tasks backward by start DESC: T3(10,17) → T1(5,14) → T2(4,9) 
 **Root cause:** T1 consumed the high-front T3 chain, leaving front=7 too low for both T2 (pinned, must end by 9) and T0. The most-constrained task (T2, tightest deadline) should have been given first claim on that chain.
 
 ### Test Cases · [prob3_test_cases.py](prob3_test_cases.py)
-12 cases: 8 core cases, 2 EDF-failure cases (`edf_fails_*`), 1 sol1 failure (`sol1_greedy_reuse_*`), 1 sol2 failure (`sol2_max_front_*`).
+14 cases: 8 core cases, 2 EDF-failure cases (`edf_fails_*`), 1 sol1 failure (`sol1_greedy_reuse_*`), 1 sol2 failure (`sol2_max_front_*`), 2 strategic-scheduling cases (`strategic_idling_*`, `different_release_edf_*`) that expose the limits of greedy approaches — all 14 passed by sol4.
+
+**Implementation Status:** sol1 passes 12/14 · sol2 passes 11/14 · sol3 passes 12/14 · **sol4 passes 14/14**
 
 ---
 
@@ -360,7 +394,8 @@ min_cpu_run_task/
 ├── prob2_test_cases.py    # P2: Test cases
 ├── prob3_sol1.py          # P3: Forward start_time + min-heap
 ├── prob3_sol2.py          # P3: Backward start_time DESC + max-heap
-├── prob3_sol3.py          # P3: Forward + binary search (release/latest-start heaps)
+├── prob3_sol3.py          # P3: Forward + binary search + deque (12/14, fails strategic-idling)
+├── prob3_sol4.py          # P3: Hall's condition + binary search (correct, 14/14)
 ├── prob3_test_cases.py    # P3: Test cases
 └── prob4_test_cases.py    # P4: Test cases (impl TODO)
 ```
@@ -371,5 +406,5 @@ min_cpu_run_task/
 
 - ✅ **Problem 1**: sol1 and sol2 correct (12/12); sol3 fails 2 cases — greedy reuse over-chains early tasks, blocking CPUs from tight-deadline tasks (see Known Failure)
 - ✅ **Problem 2**: sol3_problem2.py is correct (9/9); sol1 fails 1 case, sol2 fails 2 cases (see Known Failures)
-- ⏳ **Problem 3**: sol1 and sol2 each fail 1 case (different modes); sol3 implements forward+binary-search and passes current 12/12 tests
+- ✅ **Problem 3**: sol1/sol2/sol3 each have greedy failures; **sol4 (Hall's condition) is correct (14/14)**
 - ⏳ **Problem 4**: Test cases ready, implementation TODO

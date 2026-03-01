@@ -1,95 +1,81 @@
+"""
+Problem 3 — Solution 4: Hall's Condition + Binary Search
+==========================================================
+
+Algorithm
+---------
+For k identical machines and n jobs of equal length L with release times r_i
+and deadlines d_i, a feasible non-preemptive schedule exists if and only if
+**Hall's condition** holds for every time interval [a, b):
+
+    |{ i : r_i >= a  AND  d_i <= b }|  <=  k * floor((b - a) / L)
+
+In plain terms: the number of tasks that must execute entirely within [a, b)
+cannot exceed the total slot capacity of k machines in that window.
+
+This is both *necessary* (obvious capacity argument) and *sufficient* (follows
+from the bipartite-matching / LP-integrality theorem for uniform-length jobs on
+identical parallel machines).  Unlike EDF or EDD greedy algorithms, it correctly
+handles cases that require "strategic idling" — an idle gap before a
+tight-deadline task to avoid blocking it with a looser-deadline task.
+
+Steps:
+1) Pre-check impossibility: if start_i + L > deadline_i for any task -> -1.
+2) Binary-search on k in [1, n].
+3) For fixed k, check Hall's condition over all O(n^2) critical-point pairs.
+   Critical points: { r_i } ∪ { d_i } (at most 2n distinct values).
+
+Time Complexity : O(n^3 log n) — O(n^2) pairs × O(n) count × O(log n) binary search
+Space Complexity: O(n)
+"""
+
 from __future__ import annotations
 
-import heapq
-from typing import List
+
+def _feasible_with_k(tasks: list[tuple[int, int]], task_length: int, num_cpus: int) -> bool:
+    """
+    Hall's condition for identical-job parallel machine scheduling.
+
+    tasks : list of (release_time, latest_start).
+    Returns True iff, for every interval [a, b) formed by critical points,
+    the number of tasks contained within it does not exceed
+    num_cpus * floor((b - a) / task_length).
+    """
+    releases = [r for r, _ in tasks]
+    deadlines = [ls + task_length for _, ls in tasks]
+    critical = sorted(set(releases + deadlines))
+
+    for ai, a in enumerate(critical):
+        for b in critical[ai + 1:]:
+            capacity = num_cpus * ((b - a) // task_length)
+            demand = sum(1 for r, d in zip(releases, deadlines) if r >= a and d <= b)
+            if demand > capacity:
+                return False
+    return True
 
 
 def prob3(start_times: list[int], task_length: int, deadlines: list[int]) -> int:
     """
-    Solution A:
-      - Precheck impossibility (latest_start < release)
-      - Binary search min CPUs m
-      - Feasibility check for fixed m using:
-          * machines: min-heap of next-free times
-          * available jobs: min-heap keyed by latest_start (deadline - p)
-        Always schedule on the earliest-free machine at time t the available job
-        with the smallest latest_start.
-
-    Returns:
-      - min CPUs if feasible
-      - -1 if impossible
+    Return the minimum number of CPUs required so that each task finishes
+    by its own deadline, or -1 if impossible.
     """
     n = len(start_times)
-    if n != len(deadlines):
-        raise ValueError("start_times and deadlines must have the same length")
     if n == 0:
         return 0
-    p = task_length
-    if p < 0:
-        raise ValueError("task_length must be non-negative")
-    if p == 0:
-        # zero-length tasks: only need to start within [r, d], always schedulable on 1 CPU if r<=d
-        for r, d in zip(start_times, deadlines):
-            if r > d:
-                return -1
-        return 1
 
-    # Build jobs: (release, latest_start)
-    jobs = []
-    for r, d in zip(start_times, deadlines):
-        ls = d - p
-        if ls < r:
+    tasks: list[tuple[int, int]] = []
+    for start_time, deadline in zip(start_times, deadlines):
+        latest_start = deadline - task_length
+        if latest_start < start_time:
             return -1
-        jobs.append((r, ls))
+        tasks.append((start_time, latest_start))
 
-    jobs.sort(key=lambda x: x[0])  # sort by release time
-
-    def feasible(m: int) -> bool:
-        # Min-heap of machine next-free times
-        machines = [0] * m
-        heapq.heapify(machines)
-
-        # Min-heap of available jobs by latest_start: (latest_start, release)
-        available: list[tuple[int, int]] = []
-
-        i = 0  # pointer into jobs
-
-        while True:
-            if i >= n and not available:
-                return True  # all scheduled
-
-            t = heapq.heappop(machines)
-
-            # If nothing is available yet, fast-forward to next release (keeping CPU idle)
-            if not available and i < n and t < jobs[i][0]:
-                t = jobs[i][0]
-
-            # Add all jobs released by time t
-            while i < n and jobs[i][0] <= t:
-                r, ls = jobs[i]
-                heapq.heappush(available, (ls, r))
-                i += 1
-
-            if not available:
-                # No jobs exist at this time and no future jobs (since i>=n handled above)
-                heapq.heappush(machines, t)
-                continue
-
-            ls, r = heapq.heappop(available)
-
-            # Must be able to start by ls
-            if t > ls:
-                return False
-
-            # Schedule this job on this machine at time t (non-preemptive)
-            heapq.heappush(machines, t + p)
-
-    # Binary search min m in [1, n]
-    lo, hi = 1, n
-    while lo < hi:
-        mid = (lo + hi) // 2
-        if feasible(mid):
-            hi = mid
+    left, right = 1, n
+    while left < right:
+        mid = (left + right) // 2
+        if _feasible_with_k(tasks, task_length, mid):
+            right = mid
         else:
-            lo = mid + 1
-    return lo
+            left = mid + 1
+
+    return left
