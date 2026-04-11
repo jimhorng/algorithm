@@ -1,75 +1,94 @@
-from collections import defaultdict
+from __future__ import annotations
 
 
 class Solution:
     def simplify(self, expression: str) -> str:
-        INVERT, NON_INVERT = 1, 0
-        # clean
-        s = [c for c in expression if c.strip()]
-        invert = {} # {critical point: invert_count}
-        lp_stack = [] # idx of s
-        
-        # record invert points
-        for i in range(len(s)):
-            if s[i] == '(':
-                if i-1 >= 0 and s[i-1] == '-':
-                    lp_stack.append((i, INVERT))
-                else:
-                    lp_stack.append((i, NON_INVERT))
-            if s[i] == ')':
-                i_lp, invert_type = lp_stack.pop()
-                i_rp = i
-                if invert_type == INVERT:
-                    invert[i_lp] = invert.get(i_lp, 0) + 1
-                    invert[i_rp] = invert.get(i_rp, 0) - 1
+        compact_chars = self._remove_spaces(expression)
+        flip_deltas = self._collect_flip_deltas(compact_chars)
+        flattened_chars = self._flatten_expression(compact_chars, flip_deltas)
+        variable_counts = self._count_variables(flattened_chars)
+        return self._build_result(variable_counts)
 
-        si = [] # s_inverted
-        invert_cur = 0
-        for i in range(len(s)):
-            c = s[i]
-            if invert.get(i) != None:
-                invert_cur = (invert_cur + invert[i]) % 2
-            if c in '()':
+    def _remove_spaces(self, expression: str) -> list[str]:
+        return [ch for ch in expression if ch != " "]
+
+    def _collect_flip_deltas(self, chars: list[str]) -> list[int]:
+        flip_deltas = [0] * (len(chars) + 1)
+        parentheses_stack: list[tuple[int, bool]] = []
+
+        for index, ch in enumerate(chars):
+            if ch == "(":
+                should_flip_inside = index > 0 and chars[index - 1] == "-"
+                parentheses_stack.append((index, should_flip_inside))
                 continue
-            elif c in '+-':
-                if invert_cur == INVERT:
-                    c = '+' if c == '-' else '-'
-            si.append(c)
-        
-        # char freq
-        char_count = defaultdict(int)
-        for i in range(len(si)):
-            c = si[i]
-            if c in '+-':
+
+            if ch == ")":
+                left_index, should_flip_inside = parentheses_stack.pop()
+                if should_flip_inside:
+                    flip_deltas[left_index + 1] += 1
+                    flip_deltas[index] -= 1
+
+        return flip_deltas
+
+    def _flatten_expression(self, chars: list[str], flip_deltas: list[int]) -> list[str]:
+        flattened_chars: list[str] = []
+        active_flip = 0
+
+        for index, ch in enumerate(chars):
+            active_flip = (active_flip + flip_deltas[index]) % 2
+
+            if ch in "()":
                 continue
-            if i == 0 or si[i-1] == '+':
-                char_count[c] += 1
-            else:
-                char_count[c] -= 1
 
-        print(f"char_count: {char_count}")
+            if ch in "+-" and active_flip == 1:
+                ch = "+" if ch == "-" else "-"
 
-        final = []
-        for c, cnt in char_count.items():
-            if cnt == 0:
+            flattened_chars.append(ch)
+
+        return flattened_chars
+
+    def _count_variables(self, flattened_chars: list[str]) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        next_sign = 1
+
+        for ch in flattened_chars:
+            if ch == "+":
+                next_sign = 1
                 continue
-            if cnt > 0:
-                final.append('+')
-            elif cnt < 0:
-                final.append('-')
-                cnt = abs(cnt)
-            if cnt > 1 or cnt < -1: # count not 1
-                final.append(str(cnt))
-            final.append(c)
-            
-        return "".join(final[1:])
 
+            if ch == "-":
+                next_sign = -1
+                continue
 
-def main() -> None:
+            counts.setdefault(ch, 0)
+            counts[ch] += next_sign
+            next_sign = 1
+
+        return counts
+
+    def _format_term(self, variable_name: str, coefficient: int) -> str:
+        absolute_value = abs(coefficient)
+        if absolute_value == 1:
+            return variable_name
+        return f"{absolute_value}{variable_name}"
+
+    def _build_result(self, variable_counts: dict[str, int]) -> str:
+        parts: list[str] = []
+
+        for variable_name, coefficient in variable_counts.items():
+            if coefficient == 0:
+                continue
+
+            term = self._format_term(variable_name, coefficient)
+            if not parts:
+                parts.append(term if coefficient > 0 else f"-{term}")
+                continue
+
+            parts.append(f"+{term}" if coefficient > 0 else f"-{term}")
+
+        return "".join(parts)
+
+if __name__ == "__main__":
     from test_cases import run_cases
 
     run_cases(Solution())
-
-
-if __name__ == "__main__":
-    main()
